@@ -21,16 +21,19 @@ data:
     }
 
 ---
-apiVersion: v1
+apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: web-site
+  name: nginx
 spec:
   replicas: 1
+  selector:
+    matchLabels:
+      app: nginx
   template:
     metadata:
       labels:
-        app: web
+        app: nginx
     spec:
       containers:
       - name: nginx
@@ -48,29 +51,29 @@ spec:
         - mountPath: /var/www/site/second/public_html
           name: second-html
         livenessProbe:
-        # Время ожидания после запуска pod'ы до момента начала проверки
-        initialDelaySeconds: 5
-        periodSeconds: 10
-        # http проверка
-        httpGet:
-          path: /
-          port: 80
-        volumes:
-        - name: site-conf
-          configMap:
-            name: site-conf # place ConfigMap `site-conf` on /etc/nginx/conf.d
-        - name: first-html
-          hostPath:
-            # directory location on host
-            path: /opt/k8s/scand/web/data/scand/
-            # this field is optional
-            type: Directory
-        - name: second-html
-            hostPath:
-            # directory location on host
-            path: /opt/k8s/scand/web/data/home/
-            # this field is optional
-            type: Directory
+          # Время ожидания после запуска pod'ы до момента начала проверки
+          initialDelaySeconds: 5
+          periodSeconds: 10
+          # http проверка
+          httpGet:
+            path: /
+            port: 80
+      volumes:
+      - name: site-conf
+        configMap:
+          name: site-conf # place ConfigMap `site-conf` on /etc/nginx/conf.d
+      - name: first-html
+        hostPath:
+          # directory location on host
+          path: /opt/k8s/scand/web/data/scand/
+          # this field is optional
+          type: Directory
+      - name: second-html
+        hostPath:
+          # directory location on host
+          path: /opt/k8s/scand/web/data/home/
+          # this field is optional
+          type: Directory
 
 ---
 apiVersion: v1
@@ -78,9 +81,10 @@ kind: Service
 metadata:
   name: nginx
 spec:
-  selector:
-    app: web
   type: LoadBalancer
   ports:
-    - port: 80
+    - port: 8080
       targetPort: 80
+  selector:
+    app: nginx
+
