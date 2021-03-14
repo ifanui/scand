@@ -13,6 +13,9 @@ spec:
       ports:
         - containerPort: 80
         - containerPort: 443
+      volumeMounts:
+        - mountPath: /nginx-volume
+          name: app-volume
       livenessProbe:
         # Время ожидания после запуска pod'ы до момента начала проверки
         initialDelaySeconds: 5
@@ -23,3 +26,10 @@ spec:
           port: 80
     - name: certbot
       image: certbot/certbot
+  volumes:
+    - name: app-volume
+      hostPath:
+        # directory location on host
+        path: ../data/nginx/
+        # this field is optional
+        type: Directory
