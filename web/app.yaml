@@ -7,7 +7,8 @@ data:
     server {
       listen 80;
       server_name k8s.wfaw-10059.workfusion.com;
-      root /usr/local/app;
+      root /var/www/site/first/public_html;
+      index  index.html index.htm;
       access_log /var/log/nginx/app.access_log main;
       error_log /var/log/nginx/app.error_log;
       location /first/ {
