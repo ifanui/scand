@@ -14,13 +14,10 @@ spec:
         - containerPort: 80
         - containerPort: 443
       livenessProbe:
-        # включаем проверку работоспособности
-        enabled: true
-        type: http
         # Время ожидания после запуска pod'ы до момента начала проверки
-        initialDelaySeconds: 30
-          TimeoutSeconds: 5
-          # http проверка
-          httpGet:
-            path: /
-            port: 80
+        initialDelaySeconds: 5
+        periodSeconds: 10
+        # http проверка
+        httpGet:
+          path: /
+          port: 80
