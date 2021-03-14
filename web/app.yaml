@@ -69,3 +69,14 @@ spec:
         path: /opt/k8s/scand/web/data/home/
         # this field is optional
         type: Directory
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: nginx
+spec:
+  type: LoadBalancer
+  ports:
+    - port: 80
+      targetPort: 80
