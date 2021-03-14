@@ -18,3 +18,9 @@ spec:
         enabled: true
         type: http
         # Время ожидания после запуска pod'ы до момента начала проверки
+        initialDelaySeconds: 30
+          TimeoutSeconds: 5
+          # http проверка
+          httpGet:
+            path: /
+            port: 80
