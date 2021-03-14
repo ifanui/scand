@@ -52,8 +52,8 @@ spec:
           port: 80
   volumes:
     - name: site-conf
-        configMap:
-          name: site-conf # place ConfigMap `site-conf` on /etc/nginx/conf.d
+      configMap:
+        name: site-conf # place ConfigMap `site-conf` on /etc/nginx/conf.d
     - name: log
       emptyDir: { }
     - name: first-html
