@@ -68,9 +68,8 @@ spec:
       volumeMounts:
         - mountPath: /etc/nginx/nginx.conf
           readOnly: true
+          subPath: nginx.conf
           name: nginx-conf
-        - mountPath: /var/log/nginx
-          name: log
         - mountPath: /var/www/site/first/public_html
           name: first-html
         - mountPath: /var/www/site/second/public_html
@@ -85,7 +84,7 @@ spec:
           port: 80
   volumes:
     - name: nginx-conf
-      ConfigMap:
+      configMap:
         name: nginx-conf # place ConfigMap `nginx-conf` on /etc/nginx
         items:
           - key: nginx.conf
