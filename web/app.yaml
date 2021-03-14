@@ -12,11 +12,11 @@ data:
       access_log /var/log/nginx/app.access_log main;
       error_log /var/log/nginx/app.error_log;
       location /first/ {
-        root /var/www/site/first/public_html;
+        root /var/www/site/public_html;
         index  index.html index.htm;
       }
       location /second/ {
-        root /var/www/site/second/public_html;
+        root /var/www/site/public_html;
         index  index.html index.htm;
       }
     }
