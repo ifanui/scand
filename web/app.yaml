@@ -47,9 +47,9 @@ spec:
           readOnly: true
           subPath: site.conf
           name: site-conf
-        - mountPath: /var/www/site/first/public_html
+        - mountPath: /var/www/site/public_html/first
           name: first-html
-        - mountPath: /var/www/site/second/public_html
+        - mountPath: /var/www/site/public_html/second
           name: second-html
         livenessProbe:
           # Время ожидания после запуска pod'ы до момента начала проверки
