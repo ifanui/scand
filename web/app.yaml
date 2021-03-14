@@ -14,8 +14,6 @@ spec:
         - containerPort: 80
         - containerPort: 443
       volumeMounts:
-        - mountPath: /etc/nginx/conf.d
-          name: app-volume
         - mountPath: /var/www/site/first/public_html
           name: first-html
         - mountPath: /var/www/site/second/public_html
@@ -32,18 +30,18 @@ spec:
     - name: app-volume
       hostPath:
         # directory location on host
-        path: ./data/nginx/
+        path: /opt/k8s/scand/web/data/nginx/
         # this field is optional
         type: Directory
     - name: first-html
       hostPath:
         # directory location on host
-        path: ./data/scand/
+        path: /opt/k8s/scand/web/data/scand/
         # this field is optional
         type: Directory
     - name: second-html
       hostPath:
         # directory location on host
-        path: ./data/home/
+        path: /opt/k8s/scand/web/data/home/
         # this field is optional
         type: Directory
