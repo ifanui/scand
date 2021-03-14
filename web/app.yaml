@@ -5,7 +5,8 @@ metadata:
 data:
   site.conf: |
     server {
-      listen 80 k8s.wfaw-10059.workfusion.com;
+      listen 80;
+      server_name k8s.wfaw-10059.workfusion.com;
       root /usr/local/app;
       access_log /var/log/nginx/app.access_log main;
       error_log /var/log/nginx/app.error_log;
