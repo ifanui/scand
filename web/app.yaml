@@ -14,8 +14,12 @@ spec:
         - containerPort: 80
         - containerPort: 443
       volumeMounts:
-        - mountPath: /nginx-volume
+        - mountPath: /etc/nginx/conf.d
           name: app-volume
+        - mountPath: /var/www/site/first/public_html
+          name: first-html
+        - mountPath: /var/www/site/second/public_html
+          name: second-html
       livenessProbe:
         # Время ожидания после запуска pod'ы до момента начала проверки
         initialDelaySeconds: 5
@@ -24,12 +28,22 @@ spec:
         httpGet:
           path: /
           port: 80
-    - name: certbot
-      image: certbot/certbot
   volumes:
     - name: app-volume
       hostPath:
         # directory location on host
-        path: ../data/nginx/
+        path: ./data/nginx/
+        # this field is optional
+        type: Directory
+    - name: first-html
+      hostPath:
+        # directory location on host
+        path: ./data/scand/
+        # this field is optional
+        type: Directory
+    - name: second-html
+      hostPath:
+        # directory location on host
+        path: ./data/home/
         # this field is optional
         type: Directory
