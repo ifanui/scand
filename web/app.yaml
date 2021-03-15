@@ -7,16 +7,14 @@ data:
     server {
       listen 80;
       server_name k8s.wfaw-10059.workfusion.com;
-      root /var/www/site/first/public_html;
+      root /var/www/site/public_html;
       index  index.html index.htm;
       access_log /var/log/nginx/app.access_log main;
       error_log /var/log/nginx/app.error_log;
-      location /first/ {
-        root /var/www/site/public_html;
+      location /first {
         index  index.html index.htm;
       }
-      location /second/ {
-        root /var/www/site/public_html;
+      location /second {
         index  index.html index.htm;
       }
     }
@@ -84,7 +82,7 @@ metadata:
 spec:
   type: LoadBalancer
   ports:
-    - port: 8080
+    - port: 80
       targetPort: 80
   selector:
     app: nginx
