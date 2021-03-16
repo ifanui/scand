@@ -107,3 +107,33 @@ data:
     <p>SCAND</p>
     </body>
     </html>
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: first
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: first
+  template:
+    metadata:
+      labels:
+        app: first
+    spec:
+      containers:
+        - name: apple-app
+            image: hashicorp/http-echo
+            args:
+              - "-text=HOME"
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: first-svc
+spec:
+  ports:
+    - port: 8080
+  selector:
+    app: first
