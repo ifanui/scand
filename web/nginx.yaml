@@ -136,4 +136,8 @@ spec:
   ports:
     - port: 8080
   selector:
+<<<<<<< HEAD
     app: first
+=======
+    app: first
+>>>>>>> ab33237c9539c3a09277cc7247f9678c6d20ef39

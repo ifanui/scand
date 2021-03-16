@@ -27,9 +27,9 @@ spec:
                 port:
                   number: 8080
           - path: /first
-              pathType: Prefix
-              backend:
-                service:
-                  name: first-svc
-                  port:
-                    number: 8080
+            pathType: Prefix
+            backend:
+              service:
+                name: first-svc
+                port:
+                  number: 8080
