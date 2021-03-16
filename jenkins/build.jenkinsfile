@@ -1,0 +1,135 @@
+import org.jenkinsci.plugins.pipeline.modeldefinition.Utils
+
+properties([
+    parameters([
+        string(
+            name: 'GIT_BRANCH',
+            defaultValue: 'develop',
+            description: 'Branch for application'
+        ),
+        booleanParam(
+            name: 'DEPLOY_APP',
+            defaultValue: false,
+            description: "Deploy application to k8s"
+        ),
+        string(
+            name: 'NODE',
+            defaultValue: env.DEFAULT_DOCKER_SLAVE,
+            description: "NODE - name of Jenkins node for building docker image"
+        )
+    ]),
+    [$class: 'BuildDiscarderProperty', strategy: [$class: 'LogRotator', artifactDaysToKeepStr: '10', artifactNumToKeepStr: '10', daysToKeepStr: '', numToKeepStr: '10']]
+])
+
+defaults = [
+    slackChannel: 'frontend_guild',
+    nexusUrl: env.REGISTRY_ALL_URL,
+    sonarUrl: env.SONAR_WORKFUSION_URL,
+    sonarCredentials: env.SONAR_CREDENTIALS,
+    nexusConfig: env.YARN_SETTINGS,
+    AWSECRDockerRepo: '891308521893.dkr.ecr.us-east-1.amazonaws.com',
+    AWSECRDockerCreds: 'ecr:us-east-1:AWS_PROD',
+    AWSECRDockerUrl: 'https://891308521893.dkr.ecr.us-east-1.amazonaws.com',
+    timeoutTime: 60
+]
+
+// Setup some build variables
+String currentResult = 'SUCCESS'
+env.GIT_BRANCH = (env.BRANCH_NAME ==~ /PR-\d+/) ? env.CHANGE_BRANCH : env.BRANCH_NAME
+
+pipelineWrapper.executePipeline({
+    try {
+        stage('Delete usecase') {
+            cleanWs()
+        }
+        stage('Checkout from Git') {
+            checkout scm
+            currentBuild.displayName = "#${BUILD_NUMBER} ${env.GIT_BRANCH}"
+            wrap([$class: 'BuildUser']) {
+                currentBuild.description = "Managed by ${env.BUILD_USER_ID ?: 'jenkins'}"
+            }
+            //Check last commit
+            commitInfo = gitUtils.getCommitInfo()
+            output.log('Last commited Author: ': 'green', "${commitInfo['author']} ": 'red', 'with commit message ': 'green', "'${commitInfo['message']}'": 'blue')
+        }
+        stage('Build npm private packages') {
+            npmBuild()
+        }
+        stage('Sonar') {
+            analysisResult = sonarqube.analyze(defaults.sonarUrl, defaults.sonarCredentials)
+            if (analysisResult['result'] != 'OK') {
+                notification.slack(
+                    'FAILED',
+                    "SonarQube scan result for design-system/${env.GIT_BRANCH} was unsuccessfull :flashing::flashing::flashing:. See ${analysisResult['url']}",
+                    "@${commitInfo['author']}"
+                )
+                output.log("SonarQube analyze result is ERROR. See ${analysisResult['url']}", 'red')
+            }
+        }
+        stage('Build docker container and push to S3 repo') {
+            if (params.DEPLOY_ARTIFACT) {
+                buildDockerImageAndPush('design-system', commitInfo['commit'])
+            } else {
+                Utils.markStageSkippedForConditional('Build docker container and push to S3 repo')
+            }
+        }
+    } catch (e) {
+        if (env.GIT_BRANCH == 'develop' || params.DEPLOY_ARTIFACT) {
+            notification.slack('FAILED', "Our <${env.BUILD_URL}|build> failed with error: ${e.getMessage()} :flashing::flashing::flashing:\n*GIT_BRANCH:* ${env.GIT_BRANCH}\n*Owner:* @${commitInfo['author']}", defaults.slackChannel)
+            currentResult = 'FAILURE'
+        }
+        throw e
+    } finally {
+        def previousResult = currentBuild.previousBuild?.result
+        if (previousResult == 'ABORTED') {
+            previousResult = 'FAILURE'
+        }
+        if (previousResult && previousResult != currentResult && previousResult != 'SUCCESS') {
+            if (env.GIT_BRANCH == 'develop' || params.DEPLOY_ARTIFACT) {
+                notification.slack('SUCCESS', "<${env.BUILD_URL}|${env.JOB_NAME}> :white_check_mark::white_check_mark::white_check_mark:\n*GIT_BRANCH:* ${env.GIT_BRANCH}\n*Owner:* @${commitInfo['author']}", defaults.slackChannel)
+            }
+        }
+    }
+}, params.NODE, defaults.timeoutTime)
+
+def npmBuild() {
+    if (env.GIT_BRANCH == 'develop') {
+        withNPM(npmrcConfig:"${defaults.nexusConfig}") {
+            sh """
+                yarn config set unsafe-perm true
+                yarn config set registry ${defaults.nexusUrl}
+                yarn && yarn start && yarn test
+                yarn build
+                yarn publish:packages
+            """
+        }
+    } else if (params.DEPLOY_ARTIFACT) {
+        withNPM(npmrcConfig:"${defaults.nexusConfig}") {
+            sh """
+                yarn config set unsafe-perm true
+                yarn config set registry ${defaults.nexusUrl}
+                yarn && yarn start && yarn test
+                yarn build
+                yarn build-storybook
+            """
+        }
+    } else {
+        sh """
+            yarn config set unsafe-perm true
+            yarn config set registry ${defaults.nexusUrl}
+            yarn && yarn start && yarn test
+        """
+    }
+}
+
+def buildDockerImageAndPush(String nameImage, String versionImage) {
+    withDockerRegistry(credentialsId: defaults.AWSECRDockerCreds, url: defaults.AWSECRDockerUrl) {
+        sh """
+            docker build --no-cache -t ${defaults.AWSECRDockerRepo}/${nameImage}:${versionImage}  -f ${env.WORKSPACE}/docker/design-system/Dockerfile .
+            docker tag ${defaults.AWSECRDockerRepo}/${nameImage}:${versionImage} ${defaults.AWSECRDockerRepo}/${nameImage}:latest
+            for j in 1 2 3; do docker push ${defaults.AWSECRDockerRepo}/${nameImage}:${versionImage} &&
+            docker push ${defaults.AWSECRDockerRepo}/${nameImage}:latest &&
+            break || sleep 10; [[ \$j -eq 3 ]] && exit 1;  done
+        """
+    }
+}

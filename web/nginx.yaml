@@ -1,0 +1,109 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: scand
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: scand
+  template:
+    metadata:
+      labels:
+        app: scand
+    spec:
+      containers:
+        - name: scand
+          image: nginx:alpine
+          ports:
+            - containerPort: 80
+          volumeMounts:
+            - mountPath: /usr/share/nginx/html/index.html
+              subPath: index.html
+              name: scand
+      volumes:
+      - name: scand
+        configMap:
+          name: scand
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: scand-svc
+spec:
+  ports:
+    - port: 8080
+      targetPort: 80
+      protocol: TCP
+      name: http
+  selector:
+    app: scand
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: home
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: home
+  template:
+    metadata:
+      labels:
+        app: home
+    spec:
+      containers:
+        - name: home
+          image: nginx:alpine
+          ports:
+            - containerPort: 80
+          volumeMounts:
+            - mountPath: /usr/share/nginx/html/index.html
+              subPath:  index.html
+              name: home
+      volumes:
+      - name: home
+        configMap:
+          name: home
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: home-svc
+spec:
+  ports:
+    - port: 8080
+      targetPort: 80
+      protocol: TCP
+      name: http
+  selector:
+    app: home
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: home
+data:
+  index.html: |
+    <!DOCTYPE html>
+    <html>
+    <body>
+    <h1></h1>
+    <p>HOME</p>
+    </body>
+    </html>
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: scand
+data:
+  index.html: |
+    <!DOCTYPE html>
+    <html>
+    <body>
+    <h1></h1>
+    <p>SCAND</p>
+    </body>
+    </html>
