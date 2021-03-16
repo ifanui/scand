@@ -1,0 +1,74 @@
+import org.jenkinsci.plugins.pipeline.modeldefinition.Utils
+
+properties([
+    parameters([
+        string(
+            name: 'GIT_BRANCH',
+            defaultValue: 'develop',
+            description: 'Branch for application'
+        ),
+        string(
+            name: 'GIT_REPO',
+            defaultValue: '',
+            description: 'Repo for application'
+        ),
+        string(
+            name: 'APP',
+            defaultValue: '',
+            description: 'Application name'
+        ),
+        booleanParam(
+            name: 'DEPLOY_APP',
+            defaultValue: false,
+            description: "Deploy application to k8s"
+        ),
+        string(
+            name: 'NODE',
+            defaultValue: env.DEFAULT_DOCKER_SLAVE,
+            description: "NODE - name of Jenkins node for building docker image"
+        )
+    ]),
+    [$class: 'BuildDiscarderProperty', strategy: [$class: 'LogRotator', artifactDaysToKeepStr: '10', artifactNumToKeepStr: '10', daysToKeepStr: '', numToKeepStr: '10']]
+])
+
+defaults = [
+    registryHost: "127.0.0.1:30400/"
+]
+
+runtime = [
+    tag: null,
+    imageName: null
+]
+
+node(params.NODE){
+    stage('Delete builds') {
+        cleanWs()
+    }
+    stage('Checkout from Git') {
+            checkout scm: [
+                $class           : 'GitSCM',
+                branches         : [[name: params.GIT_BRANCH]],
+                extensions       : [[$class: 'CloneOption', depth: 1, noTags: false, reference: '', shallow: true, timeout: 30]],
+                userRemoteConfigs: [[
+                    credentialsId: env.GIT_CREDS,
+                    url          : params.GIT_REPO
+                ]]
+            ]
+            sh "git rev-parse --short HEAD > commit-id"
+            runtime.tag = readFile('commit-id').replace("\n", "").replace("\r", "")
+            runtime.imageName = "${defaults.registryHost}${params.APP}:${runtime.tag}"
+    }
+    stage('Build docker image') {
+        sh "docker build -t ${runtime.imageName} -f ${env.WORKSPACE}/applications/Dockerfile ."
+    }
+    stage('Push image to registry') {
+        sh "docker push ${runtime.imageName}"
+    }
+    stage('Deploy') {
+        if (params.DEPLOY_APP) {
+            kubernetesDeploy configs: "applications/${params.APP}/k8s/*.yaml", kubeconfigId: 'kenzan_kubeconfig'
+        }  else {
+        Utils.markStageSkippedForConditional('Deploy was skipped')
+        }
+    }
+}
