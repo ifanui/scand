@@ -37,12 +37,17 @@ defaults = [
 
 runtime = [
     tag: null,
-    imageName: null
+    imageName: null,
+    message: null
 ]
 
 node(params.NODE){
-    stage('Delete builds') {
+    stage('Prepare steps') {
         cleanWs()
+        currentBuild.displayName = "#${BUILD_NUMBER} ${env.GIT_BRANCH}"
+        wrap([$class: 'BuildUser']) {
+            currentBuild.description = "Managed by ${env.BUILD_USER_ID ?: 'jenkins'}"
+        }
     }
     stage('Checkout from Git') {
             checkout scm: [
@@ -60,15 +65,26 @@ node(params.NODE){
     }
     stage('Build docker image') {
         sh "docker build -t ${runtime.imageName} -f ${env.WORKSPACE}/applications/Dockerfile ."
+        echo 'Build docker image was successfully'
     }
     stage('Push image to registry') {
         sh "docker push ${runtime.imageName}"
     }
     stage('Deploy') {
         if (params.DEPLOY_APP) {
-            kubernetesDeploy configs: "applications/${params.APP}/k8s/*.yaml", kubeconfigId: 'kenzan_kubeconfig'
+            echo 'Deploy started to k8s'
+            kubernetesDeploy configs: "applications/${params.APP}/k8s/*.yaml", kubeconfigId: "${params.APP}_kubeconfig"
         }  else {
         Utils.markStageSkippedForConditional('Deploy was skipped')
+        }
+    }
+    stage('Notify') {
+        if (params.DEPLOY_APP) {
+            echo "Send for user ${env.BUILD_USER_ID} mail"
+            runtime.message = "!!!Deploy application ${params.APP} was successfull, please checking!!!"
+            emailext (body: runtime.message, subject: "Deploy APP:${params.APP}", to: "${env.BUILD_USER_ID}@example.com")
+        }  else {
+            Utils.markStageSkippedForConditional('Notify was skipped')
         }
     }
 }
