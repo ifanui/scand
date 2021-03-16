@@ -124,9 +124,9 @@ spec:
     spec:
       containers:
         - name: apple-app
-            image: hashicorp/http-echo
-            args:
-              - "-text=HOME"
+          image: hashicorp/http-echo
+          args:
+            - "-text=HOME"
 ---
 apiVersion: v1
 kind: Service
