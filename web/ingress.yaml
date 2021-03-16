@@ -12,24 +12,17 @@ spec:
     - host: scand.workfusion.com
       http:
         paths:
-          - path: /scand
-            pathType: Prefix
-            backend:
-              service:
-                name: scand-svc
-                port:
-                  number: 8080
-          - path: /home
-            pathType: Prefix
-            backend:
-              service:
-                name: home-svc
-                port:
-                  number: 8080
           - path: /first
             pathType: Prefix
             backend:
               service:
                 name: first-svc
+                port:
+                  number: 5678
+          - path: /second
+            pathType: Prefix
+            backend:
+              service:
+                name: second-svc
                 port:
                   number: 5678
