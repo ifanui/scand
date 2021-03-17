@@ -6,10 +6,10 @@ spec:
   ingressClassName: nginx # use only with k8s version >= 1.18.0
   tls:
     - hosts:
-        - scand.workfusion.com
+        - scand.example.com
       secretName: scand-secret
   rules:
-    - host: scand.workfusion.com
+    - host: scand.example.com
       http:
         paths:
           - path: /first
